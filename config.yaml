@@ -17,10 +17,26 @@ probes:
     type: ping
     target: 1.0.0.1
     interval: 30s
-  - name: dns-qosbox
+  - name: dns-qosbox-cf1-v6
     type: dns
     target: dns.qosbox.com
-    interval: 30s       
+    interval: 30s    
+    resolver: "[2606:4700:4700::1111]:53"
+  - name: dns-qosbox-cf2-v6
+    type: dns
+    target: dns.qosbox.com
+    interval: 30s    
+    resolver: "[2606:4700:4700::1001]:53"
+  - name: dns-qosbox-cf1-v4
+    type: dns
+    target: dns.qosbox.com
+    interval: 30s    
+    resolver: "1.1.1.1:53"
+  - name: dns-qosbox-cf2-v4
+    type: dns
+    target: dns.qosbox.com
+    interval: 30s    
+    resolver: "1.0.0.1:53"        
 outputs:
   - name: local-ws
     type: ws

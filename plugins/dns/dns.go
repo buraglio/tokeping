@@ -12,6 +12,7 @@ type DNSProbe struct {
     name     string
     target   string
     interval time.Duration
+    resolver *net.Resolver
 }
 
 func init() {
@@ -19,20 +20,30 @@ func init() {
 }
 
 func New(cfg plugin.ProbeConfig) (plugin.Probe, error) {
+    // default to system resolver
+    r := net.DefaultResolver
+
+    // if cfg.Resolver is set, dial that address over UDP
+    if cfg.Resolver != "" {
+        r = &net.Resolver{
+            PreferGo: true,
+            Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+                d := net.Dialer{Timeout: 2 * time.Second}
+                return d.DialContext(ctx, "udp", cfg.Resolver)
+            },
+        }
+    }
+
     return &DNSProbe{
         name:     cfg.Name,
-        target:   cfg.Target,   // e.g. "example.com"
-        interval: cfg.Interval, // e.g. 5s
+        target:   cfg.Target,
+        interval: cfg.Interval,
+        resolver: r,
     }, nil
 }
 
-func (p *DNSProbe) Name() string {
-    return p.name
-}
-
-func (p *DNSProbe) Interval() time.Duration {
-    return p.interval
-}
+func (p *DNSProbe) Name() string           { return p.name }
+func (p *DNSProbe) Interval() time.Duration { return p.interval }
 
 func (p *DNSProbe) Run(ctx context.Context, out chan<- plugin.Metric) {
     ticker := time.NewTicker(p.interval)
@@ -44,19 +55,18 @@ func (p *DNSProbe) Run(ctx context.Context, out chan<- plugin.Metric) {
             return
         case <-ticker.C:
             start := time.Now()
-            // use default resolver; for custom, you could use a dns.Client
-            _, err := net.DefaultResolver.LookupHost(context.Background(), p.target)
-            duration := time.Since(start).Seconds() * 1000 // ms
+            _, err := p.resolver.LookupHost(ctx, p.target)
+            elapsed := time.Since(start).Seconds() * 1000 // ms
 
-            // if you want to signal failures, you could set Latency = -1
             if err != nil {
-                duration = -1
+                // on failure, record a negative latency
+                elapsed = -1
             }
 
             out <- plugin.Metric{
                 Probe:   p.name,
                 Time:    time.Now().Unix(),
-                Latency: duration,
+                Latency: elapsed,
             }
         }
     }
