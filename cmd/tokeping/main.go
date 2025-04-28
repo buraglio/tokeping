@@ -41,8 +41,7 @@ var startCmd = &cobra.Command{
         if conf.PIDFile != "" {
             pid := []byte(fmt.Sprintf("%d", os.Getpid()))
             if err := os.WriteFile(conf.PIDFile, pid, 0644); err != nil {
-                fmt.Fprintf(os.Stderr, "failed to write pid file: %v
-", err)
+                fmt.Fprintf(os.Stderr, "failed to write pid file: %v", err)
             }
         }
 

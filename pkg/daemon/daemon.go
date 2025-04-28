@@ -1,6 +1,8 @@
 package daemon
 
 import (
+    "fmt"
+    "os"
     "context"
 
     "tokeping/pkg/config"
@@ -34,9 +36,13 @@ func (d *Daemon) Run(parent context.Context) {
     for _, o := range d.cfg.Outputs {
         out, err := plugin.NewOutput(o)
         if err != nil {
+            fmt.Fprintf(os.Stderr, "⚠️  output %q failed to register: %v\n", o.Name, err)
             continue
         }
-        out.Start()
+        fmt.Printf("➡️  starting output %q (type=%s)\n", o.Name, o.Type)
+        if err := out.Start(); err != nil {
+            fmt.Fprintf(os.Stderr, "⚠️  output %q Start() error: %v\n", o.Name, err)
+        }
         outputs = append(outputs, out)
     }
 

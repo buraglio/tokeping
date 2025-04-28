@@ -31,8 +31,7 @@ func (o *FileOutput) Start() error { return nil }
 func (o *FileOutput) Send(m plugin.Metric) {
     o.mu.Lock()
     defer o.mu.Unlock()
-    line := fmt.Sprintf("%d,%s,%.3f
-", m.Time, m.Probe, m.Latency)
+    line := fmt.Sprintf("%d,%s,%.3f", m.Time, m.Probe, m.Latency)
     o.file.WriteString(line)
 }
 func (o *FileOutput) Stop() error {

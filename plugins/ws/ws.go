@@ -1,6 +1,8 @@
 package ws
 
 import (
+    "fmt"
+    "os"
     "net/http"
     "sync"
 
@@ -31,10 +33,19 @@ func New(cfg plugin.OutputConfig) (plugin.Output, error) {
 
 func (w *WSOutput) Name() string { return "ws" }
 func (w *WSOutput) Start() error {
+    // serve static UI too
+    http.Handle("/", http.FileServer(http.Dir("web/static")))
     http.HandleFunc("/ws", w.handleWS)
-    go http.ListenAndServe(w.addr, nil)
+
+    fmt.Printf("🌐  HTTP/ws server listening on %s\n", w.addr)
+    go func() {
+        if err := http.ListenAndServe(w.addr, nil); err != nil {
+            fmt.Fprintf(os.Stderr, "❌ HTTP server error: %v\n", err)
+        }
+    }()
     return nil
 }
+
 func (w *WSOutput) handleWS(rw http.ResponseWriter, req *http.Request) {
     conn, err := w.upgrader.Upgrade(rw, req, nil)
     if err != nil {
