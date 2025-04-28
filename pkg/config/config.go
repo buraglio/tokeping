@@ -11,6 +11,7 @@ type ProbeConfig struct {
     Type     string        `mapstructure:"type"`
     Target   string        `mapstructure:"target"`
     Interval time.Duration `mapstructure:"interval"`
+    Resolver string        `mapstructure:"resolver,omitempty"`
 }
 
 type OutputConfig struct {

@@ -17,6 +17,7 @@ import (
     _ "tokeping/plugins/influxdb"
     _ "tokeping/plugins/zmq"
     _ "tokeping/plugins/file"
+    _ "tokeping/plugins/dns"
 )
 
 var cfgFile string
