@@ -1,0 +1,14 @@
+[Unit]
+Description=Tokeping Latency Graphing Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=tokeping
+Group=tokeping
+ExecStart=/usr/local/bin/tokeping start -c /etc/tokeping/config.yaml
+PIDFile=/var/run/tokeping.pid
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

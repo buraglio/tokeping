@@ -1,0 +1,24 @@
+pid_file: "/var/run/tokeping.pid"
+
+probes:
+  - name: ping-google
+    type: ping
+    target: google.com
+    interval: 5s
+
+outputs:
+  - name: local-ws
+    type: ws
+    listen: ":8080"
+  - name: influx
+    type: influxdb
+    url: "http://localhost:8086"
+    token: "my-token"
+    org: "my-org"
+    bucket: "metrics"
+  - name: zmq
+    type: zmq
+    listen: "tcp://127.0.0.1:5556"
+  - name: log-file
+    type: file
+    path: "/var/log/tokeping/metrics.log"
