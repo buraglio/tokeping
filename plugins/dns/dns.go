@@ -2,9 +2,13 @@ package dns
 
 import (
     "context"
+    "crypto/tls"
+    "encoding/json"
     "net"
+    "net/http"
     "time"
 
+    "github.com/miekg/dns"
     "tokeping/pkg/plugin"
 )
 
@@ -12,7 +16,13 @@ type DNSProbe struct {
     name     string
     target   string
     interval time.Duration
-    resolver *net.Resolver
+    protocol string
+    resolver string
+    dohURL   string
+    udpRes   *net.Resolver
+    tcpRes   *net.Resolver
+    dotClient *dns.Client
+    httpClient *http.Client
 }
 
 func init() {
@@ -20,26 +30,43 @@ func init() {
 }
 
 func New(cfg plugin.ProbeConfig) (plugin.Probe, error) {
-    // default to system resolver
-    r := net.DefaultResolver
-
-    // if cfg.Resolver is set, dial that address over UDP
-    if cfg.Resolver != "" {
-        r = &net.Resolver{
-            PreferGo: true,
-            Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-                d := net.Dialer{Timeout: 2 * time.Second}
-                return d.DialContext(ctx, "udp", cfg.Resolver)
-            },
-        }
+    // default to UDP
+    proto := cfg.Protocol
+    if proto == "" {
+        proto = "udp"
     }
 
-    return &DNSProbe{
+    dp := &DNSProbe{
         name:     cfg.Name,
         target:   cfg.Target,
         interval: cfg.Interval,
-        resolver: r,
-    }, nil
+        protocol: proto,
+        resolver: cfg.Resolver,
+        dohURL:   cfg.DoHURL,
+    }
+
+    // set up UDP and TCP resolvers
+    dp.udpRes = net.DefaultResolver
+    dp.tcpRes = &net.Resolver{
+        PreferGo: true,
+        Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+            // network will be "tcp" here
+            d := net.Dialer{Timeout: 2 * time.Second}
+            return d.DialContext(ctx, "tcp", dp.resolver)
+        },
+    }
+
+    // set up DoT client
+    dp.dotClient = &dns.Client{
+        Net:       "tcp-tls",
+        Timeout:   5 * time.Second,
+        TLSConfig: &tls.Config{ServerName: cfg.Resolver}, // SNI
+    }
+
+    // set up DoH HTTP client (JSON API)
+    dp.httpClient = &http.Client{Timeout: 5 * time.Second}
+
+    return dp, nil
 }
 
 func (p *DNSProbe) Name() string           { return p.name }
@@ -55,11 +82,41 @@ func (p *DNSProbe) Run(ctx context.Context, out chan<- plugin.Metric) {
             return
         case <-ticker.C:
             start := time.Now()
-            _, err := p.resolver.LookupHost(ctx, p.target)
-            elapsed := time.Since(start).Seconds() * 1000 // ms
+            var err error
 
+            switch p.protocol {
+            case "udp":
+                _, err = p.udpRes.LookupHost(ctx, p.target)
+            case "tcp":
+                _, err = p.tcpRes.LookupHost(ctx, p.target)
+            case "dot":
+                // build DNS message
+                m := new(dns.Msg)
+                m.SetQuestion(dns.Fqdn(p.target), dns.TypeA)
+                _, _, err = p.dotClient.ExchangeContext(ctx, m, p.resolver)
+            case "doh":
+                // DoH JSON API: e.g. https://cloudflare-dns.com/dns-query?name=example.com&type=A
+                req, _ := http.NewRequestWithContext(ctx, "GET", p.dohURL, nil)
+                q := req.URL.Query()
+                q.Set("name", p.target)
+                q.Set("type", "A")
+                req.URL.RawQuery = q.Encode()
+                req.Header.Set("Accept", "application/dns-json")
+
+                resp, e := p.httpClient.Do(req)
+                if e == nil {
+                    defer resp.Body.Close()
+                    // ignore parsing details—just unmarshal to ensure valid JSON
+                    var result struct{ Answer []interface{} }
+                    e = json.NewDecoder(resp.Body).Decode(&result)
+                }
+                err = e
+            default:
+                err = context.DeadlineExceeded
+            }
+
+            elapsed := time.Since(start).Seconds() * 1000 // ms
             if err != nil {
-                // on failure, record a negative latency
                 elapsed = -1
             }
 

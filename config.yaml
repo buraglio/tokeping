@@ -36,7 +36,20 @@ probes:
     type: dns
     target: dns.qosbox.com
     interval: 30s    
-    resolver: "1.0.0.1:53"        
+    resolver: "1.0.0.1:53"
+  - name: dns-qosbox-dot-ztvi-cmi
+    type: dns
+    target: dns.qosbox.com
+    interval: 30s
+    protocol: dot
+    resolver: "[2602:fc59:11:1::d]:853"
+# Need to better test other DoH Systems
+  - name: dns-doh-cloudflare
+    type: dns
+    target: dns.qosbox.com
+    interval: 30s
+    protocol: doh
+    doh_url: "https://cloudflare-dns.com/dns-query"      
 outputs:
   - name: local-ws
     type: ws

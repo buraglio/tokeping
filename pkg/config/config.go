@@ -11,7 +11,9 @@ type ProbeConfig struct {
     Type     string        `mapstructure:"type"`
     Target   string        `mapstructure:"target"`
     Interval time.Duration `mapstructure:"interval"`
-    Resolver string        `mapstructure:"resolver,omitempty"`
+    Resolver string        `mapstructure:"resolver,omitempty"`     // host:port of DNS server (for tcp, udp, dot)
+    Protocol string        `mapstructure:"protocol,omitempty"`     // "udp"|"tcp"|"dot"|"doh"
+    DoHURL   string        `mapstructure:"doh_url,omitempty"`      // only for "doh" mode
 }
 
 type OutputConfig struct {
