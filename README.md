@@ -4,6 +4,7 @@
 
 ### Features
 
+* Low overhead with few dependencies to run
 * Simple web interface that is really only useful for testing configurations.
 * File logging of results
 * Support for InfluxDB

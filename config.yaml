@@ -95,7 +95,7 @@ outputs:
     listen: ":8080"
   - name: influx
     type: influxdb
-    url: "http://localhost:8086"
+    url: "http://localhost:8086" # Maybe not shoving metrics in here right.
     token: "my-token"
     org: "my-org"
     bucket: "metrics"
