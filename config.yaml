@@ -93,11 +93,12 @@ outputs:
   - name: local-ws
     type: ws
     listen: ":8080"
+outputs:
   - name: influx
     type: influxdb
-    url: "http://localhost:8086" # Maybe not shoving metrics in here right.
-    token: "my-token"
-    org: "my-org"
+    url: "http://localhost:8086"
+    token: "randomtokenblahblah"
+    org:   "tokeping-org"
     bucket: "metrics"
   - name: zmq
     type: zmq

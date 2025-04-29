@@ -1,39 +1,48 @@
 package influxdb
 
 import (
-    "context"
-    "time"
+	"context"
+	"fmt"
+	"os"
+	"time"
 
-    influxdb2 "github.com/influxdata/influxdb-client-go/v2"
-    api "github.com/influxdata/influxdb-client-go/v2/api"
-    "tokeping/pkg/plugin"
+	"tokeping/pkg/plugin"
+
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	api "github.com/influxdata/influxdb-client-go/v2/api"
 )
 
 type InfluxOutput struct {
-    client   influxdb2.Client
-    writeAPI api.WriteAPIBlocking
+	client   influxdb2.Client
+	writeAPI api.WriteAPIBlocking
 }
 
 func init() {
-    plugin.RegisterOutput("influxdb", New)
+	plugin.RegisterOutput("influxdb", New)
 }
 
 func New(cfg plugin.OutputConfig) (plugin.Output, error) {
-    client := influxdb2.NewClient(cfg.URL, cfg.Token)
-    writeAPI := client.WriteAPIBlocking(cfg.Org, cfg.Bucket)
-    return &InfluxOutput{client: client, writeAPI: writeAPI}, nil
+	client := influxdb2.NewClient(cfg.URL, cfg.Token)
+	writeAPI := client.WriteAPIBlocking(cfg.Org, cfg.Bucket)
+	return &InfluxOutput{client: client, writeAPI: writeAPI}, nil
 }
 
 func (o *InfluxOutput) Name() string { return "influxdb" }
 func (o *InfluxOutput) Start() error { return nil }
 func (o *InfluxOutput) Send(m plugin.Metric) {
-    p := influxdb2.NewPointWithMeasurement("latency").
-        AddTag("probe", m.Probe).
-        AddField("value", m.Latency).
-        SetTime(time.Unix(m.Time, 0))
-    o.writeAPI.WritePoint(context.Background(), p)
+	// build the point
+	point := influxdb2.NewPointWithMeasurement("latency").
+		AddTag("probe", m.Probe).
+		AddField("value", m.Latency).
+		SetTime(time.Unix(m.Time, 0))
+
+	// write it, logging any error
+	if err := o.writeAPI.WritePoint(context.Background(), point); err != nil {
+		fmt.Fprintf(os.Stderr, "❌ influx write error: %v\n", err)
+	}
 }
+
 func (o *InfluxOutput) Stop() error {
-    o.client.Close()
-    return nil
+	o.client.Close()
+	return nil
 }
