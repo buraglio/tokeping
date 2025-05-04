@@ -1,6 +1,8 @@
 pid_file: "/var/run/tokeping.pid"
 
 probes:
+
+# ------ Original Working Probes
   - name: ping-cloudflare-dns-1-v6
     type: ping
     target: 2606:4700:4700::1111
@@ -60,27 +62,6 @@ probes:
     interval: 30s    
     resolver: "1.0.0.1:53"
 
-  - name: dns-qosbox-dot-ztvi-cmi
-    type: dns
-    target: dns.qosbox.com
-    interval: 30s
-    protocol: dot
-    resolver: "[2602:fc59:11:1::d]:853"
-
-  - name: dns-qosbox-dot-ztvi-abq
-    type: dns
-    target: dns.qosbox.com
-    interval: 30s
-    protocol: dot
-    resolver: "[2602:fc59:21:1::b]:853"
-
-  - name: dns-qosbox-dot-ztvi-fm2
-    type: dns
-    target: dns.qosbox.com
-    interval: 30s
-    protocol: dot
-    resolver: "[2602:fc59:b0:9e::853]:853"
-
 # Need to better test other DoH Systems
   - name: dns-doh-cloudflare
     type: dns
@@ -100,9 +81,9 @@ outputs:
     token: "randomtokenblahblah"
     org:   "tokeping-org"
     bucket: "metrics"
-  - name: zmq
-    type: zmq
-    listen: "tcp://127.0.0.1:5556"
-  - name: log-file
-    type: file
-    path: "/var/log/tokeping/metrics.log"
+      #  - name: zmq
+      #    type: zmq
+      #listen: "tcp://127.0.0.1:5556"
+      #- name: log-file
+      #type: file
+      #path: "/var/log/tokeping/metrics.log"
