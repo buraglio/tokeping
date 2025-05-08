@@ -78,12 +78,12 @@ outputs:
   - name: influx
     type: influxdb
     url: "http://localhost:8086"
-    token: "randomtokenblahblah"
+    token: "addyourownrandomtokenblahblah"
     org:   "tokeping-org"
     bucket: "metrics"
-      #  - name: zmq
-      #    type: zmq
-      #listen: "tcp://127.0.0.1:5556"
-      #- name: log-file
-      #type: file
-      #path: "/var/log/tokeping/metrics.log"
+  - name: zmq
+    type: zmq
+    listen: "tcp://127.0.0.1:5556"
+  - name: log-file
+    type: file
+    path: "/var/log/tokeping/metrics.log"
