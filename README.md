@@ -11,7 +11,7 @@
 * Support for ZeroMQ
 * Expandable with go based plugins.
 
-### Installation (assume Linux)
+### Installation (assumes Linux, should work on other systems that can run go; untested)
 
 Download the tokeping binary or build from source:
 
