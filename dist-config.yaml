@@ -78,8 +78,7 @@ outputs:
   - name: influx
     type: influxdb
     url: "http://localhost:8086"
-    #token: "addyourownrandomtokenblahblah"
-
+    token: "addyourownrandomtokenblahblah"
     org:   "tokeping-org"
     bucket: "metrics"
   - name: zmq
