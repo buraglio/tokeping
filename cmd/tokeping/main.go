@@ -18,6 +18,7 @@ import (
 	_ "tokeping/plugins/ping"
 	_ "tokeping/plugins/ws"
 	_ "tokeping/plugins/zmq"
+	_ "tokeping/plugins/mtr"
 )
 
 var cfgFile string
