@@ -2,6 +2,11 @@
 
  An amateurish re-imagining of both [smokeping](https://oss.oetiker.ch/smokeping/) and the successor [vaping](https://github.com/20c/vaping) in golang. Initial version supports primarily ping and DNS and has a nearly identical structure to Vaping (why re-invent the wheel?). The architecture is, like its predecessors, plugin based and modular, with the potential therefor of being a compiled and theoretically faster, lower overhead implementation. Your guess is as good as mine if that is actually the case. 
 
+ A simple grafana dashboard running on the development site is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a108473f56ec492fb5b337b8f0416c6b) (Please allow for periodic development work and interruptions due to that).
+
+ ![tokeping dashboard](tokeping-dev-example.png "tokeping-dashboard")
+
+
 ### Features
 
 * Low overhead with few dependencies to run
@@ -29,6 +34,8 @@ Install dependencies (if using ZeroMQ):
 sudo apt-get update
 sudo apt-get install pkg-config libzmq3-dev
 ```
+
+Copy dist-config.yaml to config.yaml making note of any changes for probes, API keys, etc. 
 
 ### Use
 
