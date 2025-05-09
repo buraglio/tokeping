@@ -16,6 +16,10 @@
 * Support for ZeroMQ
 * Expandable with go based plugins.
 
+### Scalabiliy
+
+It *should* scale. This still needs more testing. If you find a limit or a bug, let me know. 
+
 ### Installation (assumes Linux, should work on other systems that can run go; untested)
 
 Download the tokeping binary or build from source:
@@ -46,6 +50,20 @@ Start the daemon:
 ```
 
 Stop it with Ctrl+C or via your service manager.
+
+### Linux Service file
+
+There is an included linux service (tokeping.service) file to make running this more automatic. Move it into `/etc/systemd/system/` and run the following: 
+
+`sudo systemctl daemon-reload`
+`sudo systemctl enable tokeping.service`
+
+Check if it's working with all of the normal methods:
+
+`sudo systemctl status tokeping.service`
+`sudo systemctl restart tokeping.service`
+
+etc...
 
 ### Simple Web interface
 
@@ -141,6 +159,10 @@ Under Legend set Display name to {{probe}}.
 For the Y-axis, set the Unit to ms.
 
 Click Apply, then Save dashboard (e.g. Tokeping Latency).
+
+#### Securing grafana
+
+Don't leave grafana exposed to the world. Wrap it in something like nginx, get a letsencrypt certificate, and reverse proxy it. Instructions for doing so can be found [here](https://grafana.com/tutorials/run-grafana-behind-a-proxy/). 
 
 ### Using ZeroMQ
 
