@@ -1,6 +1,12 @@
 pid_file: "/var/run/tokeping.pid"
 
 probes:
+# ------ Example mtr probe
+probes:
+  - name: mtr-ipv6-google
+    type: mtr
+    target: ipv6.google.com
+    interval: 30s
 
 # ------ Original Working Probes
   - name: ping-cloudflare-dns-1-v6
