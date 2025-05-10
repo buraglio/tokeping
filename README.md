@@ -11,7 +11,7 @@
 
 * IPv6 first software. All functions default to IPv6, with legacy IP support
 * Low overhead with few dependencies to run
-* Simple web interface that is really only useful for testing configurations
+* Simple web interface that is useful for testing configurations
 * File logging of results
 * Support for InfluxDB
 * Support for ZeroMQ
