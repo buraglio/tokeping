@@ -2,19 +2,21 @@
 
  An amateurish re-imagining of both [smokeping](https://oss.oetiker.ch/smokeping/) and the successor [vaping](https://github.com/20c/vaping) in golang. Initial version supports primarily ping and DNS and has a nearly identical structure to Vaping (why re-invent the wheel?). The architecture is, like its predecessors, plugin based and modular, with the potential therefor of being a compiled and theoretically faster, lower overhead implementation. Your guess is as good as mine if that is actually the case. 
 
- A simple grafana dashboard running on the development site is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a108473f56ec492fb5b337b8f0416c6b) (Please allow for periodic development work and interruptions due to that).
+ A simple grafana dashboard displaying both ping and DNS statistics running on the development site is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a108473f56ec492fb5b337b8f0416c6b), and one displaying MTR statistics is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/e866fade5a6a41ffb2ee16a948394727?from=now-30m&to=now&timezone=browser&refresh=1m). Please allow for periodic development work and interruptions.
 
  ![tokeping dashboard](tokeping-dev-example.png "tokeping-dashboard")
 
 
 ### Features
 
+* IPv6 first software. All functions default to IPv6, with legacy IP support
 * Low overhead with few dependencies to run
-* Simple web interface that is really only useful for testing configurations.
+* Simple web interface that is really only useful for testing configurations
 * File logging of results
 * Support for InfluxDB
 * Support for ZeroMQ
-* Expandable with go based plugins.
+* Expandable with go based plugins
+* Basic MTR functionality (requires MTR installed on the system)
 
 ### Scalabiliy
 
@@ -32,11 +34,11 @@ go build -o tokeping ./cmd/tokeping
 
 Configure config.yaml in the project root.
 
-Install dependencies (if using ZeroMQ):
+Install dependencies (if using ZeroMQ, MTR):
 
 ```
 sudo apt-get update
-sudo apt-get install pkg-config libzmq3-dev
+sudo apt-get install pkg-config libzmq3-dev mtr
 ```
 
 Copy dist-config.yaml to config.yaml making note of any changes for probes, API keys, etc. 
@@ -194,3 +196,17 @@ while True:
 ### Plugins
 
 Tokeping tries to be flexible and to use a plugin architecture similar to Vaping and Smokeping. I will add some more details here "soon". 
+
+#### DNS queries
+
+Tokeping can make DNS queries and track the response time. This supports TCP, UDP, DoH, and DoT. Proper certificates are required for DoH and DoT. 
+
+#### Ping
+
+Simple ping replies (RTT) can be tracked and graphed. this is the most basic use case. 
+
+#### MTR
+
+With MTR installed, a trace of each hop and graph the RTT. 
+
+
