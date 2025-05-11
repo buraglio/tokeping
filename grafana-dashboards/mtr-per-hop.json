@@ -11,29 +11,29 @@
           {
             "name": "MTR_HOP",
             "type": "query",
-            "label": "Hop",
-            "datasource": "InfluxDB",
-            "query": "import \"influxdata/influxdb/schema\"\\nschema.tagValues(bucket: \\\"metrics\\\", tag: \\\"probe\\\", start: -30d, predicate: (r) => r._measurement == \\\"latency\\\")",
-            "regex": "/^mtr-.*$/",
+            "label": "MTR Hop",
+            "datasource": null,
+            "query": "import \"influxdata/influxdb/schema\"\\nschema.tagValues(bucket: \"metrics\", tag: \"probe\", start: -30d, predicate: (r) => r._measurement == \"latency\")",
             "refresh": 1,
             "multi": false,
-            "includeAll": false
+            "includeAll": false,
+            "regex": "/^mtr-.*/"
           }
         ]
       },
       "panels": [
         {
           "id": 1,
+          "gridPos": { "x": 0, "y": 0, "w": 24, "h": 6 },
           "type": "timeseries",
           "title": "Latency for ${MTR_HOP}",
           "repeat": "MTR_HOP",
-          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 0 },
-          "datasource": "InfluxDB",
+          "datasource": null,
           "targets": [
             {
               "refId": "A",
               "queryType": "flux",
-              "query": "from(bucket: \\\"metrics\\\")\\n  |> range(start: -1h)\\n  |> filter(fn: (r) => r._measurement == \\\"latency\\\" and r._field == \\\"value\\\" and r.probe == v.MTR_HOP)\\n  |> aggregateWindow(every: $__interval, fn: mean, createEmpty: false)\\n  |> yield(name: \\\"mean\\\")"
+              "query": "from(bucket: \"metrics\")\\n  |> range(start: -1h)\\n  |> filter(fn: (r) => r._measurement == \"latency\" and r._field == \"value\" and r.probe == \"${MTR_HOP}\")\\n  |> aggregateWindow(every: $__interval, fn: mean, createEmpty: false)\\n  |> yield(name: \"mean\")"
             }
           ],
           "fieldConfig": {
