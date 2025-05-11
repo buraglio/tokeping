@@ -8,6 +8,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o tokeping
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/tokeping /app/
-COPY config.yaml /app/
 
 ENTRYPOINT ["/app/tokeping"]
