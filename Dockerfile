@@ -13,7 +13,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o tokeping ./cmd/tokeping
 FROM alpine:latest
 
 # Install runtime dependencies for ZeroMQ
-RUN apk add --no-cache libzmq
+RUN apk add --no-cache libzmq mtr
 
 WORKDIR /app
 COPY --from=builder /app/tokeping /app/
