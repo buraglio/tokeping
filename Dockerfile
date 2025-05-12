@@ -19,4 +19,5 @@ WORKDIR /app
 COPY --from=builder /app/tokeping /app/
 COPY web /app/web
 
-ENTRYPOINT ["/app/tokeping"]
+ENTRYPOINT ["/app/tokeping", "start", "-c", "config.yaml"]
+
