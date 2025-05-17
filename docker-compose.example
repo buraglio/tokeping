@@ -1,0 +1,17 @@
+services:
+  tokeping:
+    image: ghcr.io/buraglio/tokeping:latest
+    container_name: tokeping
+    restart: unless-stopped
+    volumes:
+      - ${TOKEPING_DATA_PATH:-./tokeping-data/config.yaml}:/app/config.yaml
+      - ${TOKEPING_DATA_PATH:-./tokeping-data/logs}:/var/log/tokeping
+    ports:
+      - "8080:8080"
+    networks:
+      - tokeping_network
+
+networks:
+  # Make sure influx is on tokeping_network or use another network influx is on
+  tokeping_network:
+    driver: bridge
