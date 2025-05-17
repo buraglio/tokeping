@@ -1,6 +1,6 @@
 services:
   tokeping:
-    image: ghcr.io/soehlert/tokeping:latest
+    image: ghcr.io/buraglio/tokeping:latest
     container_name: tokeping
     restart: unless-stopped
     volumes:
