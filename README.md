@@ -2,7 +2,7 @@
 
 An amateurish re-imagining of both [smokeping](https://oss.oetiker.ch/smokeping/) and the successor [vaping](https://github.com/20c/vaping) in golang. The architecture is plugin based and modular, with the potential of being a compiled and theoretically faster, lower overhead implementation. 
 
-A simple grafana dashboard displaying both ping and DNS statistics running on the development site is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a108473f56ec492fb5b337b8f0416c6b), and one displaying MTR statistics is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/e866fade5a6a41ffb2ee16a948394727?from=now-30m&to=now&timezone=browser&refresh=1m). Please allow for periodic development work and interruptions.
+A simple grafana dashboard displaying both ping and DNS statistics running on the development site is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a108473f56ec492fb5b337b8f0416c6b), and one displaying MTR statistics is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a86956c210244d97ab30471aeff13343). Please allow for periodic development work and interruptions.
 
 ![tokeping dashboard](tokeping-dev-example.png "tokeping-dashboard")
 
@@ -19,9 +19,9 @@ A simple grafana dashboard displaying both ping and DNS statistics running on th
 * Basic MTR functionality (requires MTR installed on the system)
 * IPv4/IPv6 comparison testing via [prototester](https://github.com/buraglio/prototester) integration
 
-### Scalabiliy
+### Scalability
 
-It *should* scale. This still needs more testing. If you find a limit or a bug, let me know. 
+It should scale. This still needs more testing. If you find a limit or a bug, let me know.
 
 ### Installation (assumes Linux, should work on other systems that can run go; untested)
 
@@ -45,7 +45,37 @@ sudo apt-get install pkg-config libzmq3-dev mtr
 # See https://github.com/buraglio/prototester for installation
 ```
 
-Copy dist-config.yaml to config.yaml making note of any changes for probes, API keys, etc. 
+Copy dist-config.yaml to config.yaml making note of any changes for probes, API keys, etc.
+
+### Configuration Options
+
+Tokeping supports various configuration options in the config.yaml file:
+
+```yaml
+# Optional: Buffer size for metric channel (default: 100)
+metric_buffer: 100
+
+# Optional: PID file location
+pid_file: "/var/run/tokeping.pid"
+
+probes:
+  - name: example-probe
+    type: ping
+    target: 1.1.1.1
+    interval: 30s
+    timeout: 5s      # Optional: probe-specific timeout (default varies by probe type)
+    count: 5         # Optional: for MTR probes, number of cycles (default: 5)
+
+outputs:
+  - name: example-output
+    type: influxdb
+    url: "http://localhost:8086"
+    token: "your-token"
+    org: "your-org"
+    bucket: "metrics"
+```
+
+All timeout and count parameters are optional and will use sensible defaults if not specified.
 
 ### Use
 
