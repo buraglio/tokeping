@@ -1,10 +1,10 @@
 # Tokeping
 
- An amateurish re-imagining of both [smokeping](https://oss.oetiker.ch/smokeping/) and the successor [vaping](https://github.com/20c/vaping) in golang. Initial version supports primarily ping and DNS and has a nearly identical structure to Vaping (why re-invent the wheel?). The architecture is, like its predecessors, plugin based and modular, with the potential therefor of being a compiled and theoretically faster, lower overhead implementation. Your guess is as good as mine if that is actually the case. 
+An amateurish re-imagining of both [smokeping](https://oss.oetiker.ch/smokeping/) and the successor [vaping](https://github.com/20c/vaping) in golang. The architecture is plugin based and modular, with the potential of being a compiled and theoretically faster, lower overhead implementation. 
 
- A simple grafana dashboard displaying both ping and DNS statistics running on the development site is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a108473f56ec492fb5b337b8f0416c6b), and one displaying MTR statistics is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a86956c210244d97ab30471aeff13343). Please allow for periodic development work and interruptions.
+A simple grafana dashboard displaying both ping and DNS statistics running on the development site is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a108473f56ec492fb5b337b8f0416c6b), and one displaying MTR statistics is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a86956c210244d97ab30471aeff13343). Please allow for periodic development work and interruptions.
 
- ![tokeping dashboard](tokeping-dev-example.png "tokeping-dashboard")
+![tokeping dashboard](tokeping-dev-example.png "tokeping-dashboard")
 
 
 ### Features
@@ -17,10 +17,11 @@
 * Support for ZeroMQ
 * Expandable with go based plugins
 * Basic MTR functionality (requires MTR installed on the system)
+* IPv4/IPv6 comparison testing via [prototester](https://github.com/buraglio/prototester) integration
 
-### Scalabiliy
+### Scalability
 
-It *should* scale. This still needs more testing. If you find a limit or a bug, let me know. 
+It should scale. This still needs more testing. If you find a limit or a bug, let me know.
 
 ### Installation (assumes Linux, should work on other systems that can run go; untested)
 
@@ -34,14 +35,47 @@ go build -o tokeping ./cmd/tokeping
 
 Configure config.yaml in the project root.
 
-Install dependencies (if using ZeroMQ, MTR):
+Install dependencies (if using ZeroMQ, MTR, or ProtoTester):
 
 ```
 sudo apt-get update
 sudo apt-get install pkg-config libzmq3-dev mtr
+
+# Optional: Install prototester for IPv4/IPv6 comparison testing
+# See https://github.com/buraglio/prototester for installation
 ```
 
-Copy dist-config.yaml to config.yaml making note of any changes for probes, API keys, etc. 
+Copy dist-config.yaml to config.yaml making note of any changes for probes, API keys, etc.
+
+### Configuration Options
+
+Tokeping supports various configuration options in the config.yaml file:
+
+```yaml
+# Optional: Buffer size for metric channel (default: 100)
+metric_buffer: 100
+
+# Optional: PID file location
+pid_file: "/var/run/tokeping.pid"
+
+probes:
+  - name: example-probe
+    type: ping
+    target: 1.1.1.1
+    interval: 30s
+    timeout: 5s      # Optional: probe-specific timeout (default varies by probe type)
+    count: 5         # Optional: for MTR probes, number of cycles (default: 5)
+
+outputs:
+  - name: example-output
+    type: influxdb
+    url: "http://localhost:8086"
+    token: "your-token"
+    org: "your-org"
+    bucket: "metrics"
+```
+
+All timeout and count parameters are optional and will use sensible defaults if not specified.
 
 ### Use
 
@@ -120,7 +154,7 @@ Open your browser to http://localhost:3000, log in as admin/admin, and reset the
 
 #### Configure the InfluxDB data source in Grafana
 
-In Grafana, go to Configuration (⚙️) → Data Sources → Add data source.
+In Grafana, go to Configuration → Data Sources → Add data source.
 
 Select InfluxDB (Flux).
 
@@ -195,18 +229,73 @@ while True:
 ```
 ### Plugins
 
-Tokeping tries to be flexible and to use a plugin architecture similar to Vaping and Smokeping. I will add some more details here "soon". 
-
-#### DNS queries
-
-Tokeping can make DNS queries and track the response time. This supports TCP, UDP, DoH, and DoT. Proper certificates are required for DoH and DoT. 
+Tokeping uses a plugin architecture similar to Vaping and Smokeping.
 
 #### Ping
 
-Simple ping replies (RTT) can be tracked and graphed. this is the most basic use case. 
+Simple ICMP ping replies (RTT) can be tracked and graphed. This is the most basic use case.
+
+Configuration example:
+```yaml
+probes:
+  - name: ping-cloudflare
+    type: ping
+    target: 1.1.1.1
+    interval: 30s
+    timeout: 5s
+```
+
+#### DNS Queries
+
+Tokeping can make DNS queries and track the response time. This supports TCP, UDP, DoH, and DoT. Proper certificates are required for DoH and DoT.
+
+Configuration example:
+```yaml
+probes:
+  - name: dns-test
+    type: dns
+    target: example.com
+    interval: 30s
+    protocol: dot
+    resolver: "[2606:4700:4700::1111]:853"
+    timeout: 5s
+```
+
+Supported protocols: `udp`, `tcp`, `dot` (DNS over TLS), `doh` (DNS over HTTPS)
 
 #### MTR
 
-With MTR installed, a trace of each hop and graph the RTT. 
+With MTR installed, trace each hop and graph the RTT.
 
+Configuration example:
+```yaml
+probes:
+  - name: mtr-google
+    type: mtr
+    target: google.com
+    interval: 60s
+    count: 5
+```
+
+#### ProtoTester (IPv4/IPv6 Comparison)
+
+Integrates with [prototester](https://github.com/buraglio/prototester) to perform IPv4/IPv6 comparison testing across multiple protocols. Requires the `prototester` binary to be installed and available in PATH.
+
+Configuration example:
+```yaml
+probes:
+  - name: prototest-google
+    type: prototester
+    target: google.com
+    interval: 120s
+    timeout: 15s
+```
+
+This probe emits four metrics per test:
+- `{name}_ipv4` - Average IPv4 latency in ms
+- `{name}_ipv6` - Average IPv6 latency in ms
+- `{name}_ipv4_score` - IPv4 performance score
+- `{name}_ipv6_score` - IPv6 performance score
+
+Use these metrics to compare IPv4 vs IPv6 performance over time and validate dual-stack deployments.
 

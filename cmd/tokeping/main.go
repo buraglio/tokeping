@@ -17,6 +17,7 @@ import (
 	_ "tokeping/plugins/influxdb"
 	_ "tokeping/plugins/mtr"
 	_ "tokeping/plugins/ping"
+	_ "tokeping/plugins/prototester"
 	_ "tokeping/plugins/ws"
 	_ "tokeping/plugins/zmq"
 )
