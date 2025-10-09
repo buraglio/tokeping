@@ -1,18 +1,18 @@
 package plugin
 
 import (
-    "context"
-    "time"
+	"context"
+	"time"
 )
 
 type Metric struct {
-    Probe   string
-    Time    int64
-    Latency float64
+	Probe   string
+	Time    int64
+	Latency float64
 }
 
 type Probe interface {
-    Name() string
-    Interval() time.Duration
-    Run(ctx context.Context, out chan<- Metric)
+	Name() string
+	Interval() time.Duration
+	Run(ctx context.Context, out chan<- Metric)
 }

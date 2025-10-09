@@ -15,10 +15,10 @@ import (
 	_ "tokeping/plugins/dns"
 	_ "tokeping/plugins/file"
 	_ "tokeping/plugins/influxdb"
+	_ "tokeping/plugins/mtr"
 	_ "tokeping/plugins/ping"
 	_ "tokeping/plugins/ws"
 	_ "tokeping/plugins/zmq"
-	_ "tokeping/plugins/mtr"
 )
 
 var cfgFile string
@@ -32,9 +32,7 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the tokeping daemon",
 	Run: func(cmd *cobra.Command, args []string) {
-		// Daemonize stuff
 		if daemonize, _ := cmd.Flags().GetBool("daemonize"); daemonize {
-			// 1️⃣ Remove the daemonize flag for the child
 			args := []string{os.Args[0]}
 			for _, a := range os.Args[1:] {
 				if a == "--daemonize" || a == "-d" {
@@ -43,7 +41,6 @@ var startCmd = &cobra.Command{
 				args = append(args, a)
 			}
 
-			// 2️⃣ Open /dev/null for stdio
 			devNull, err := os.OpenFile("/dev/null", os.O_RDWR, 0)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "daemonize: open /dev/null: %v\n", err)
@@ -51,9 +48,8 @@ var startCmd = &cobra.Command{
 			}
 			defer devNull.Close()
 
-			// 3️⃣ Spawn a new session
 			attr := &os.ProcAttr{
-				Dir:   ".", // or your desired working dir
+				Dir:   ".",
 				Env:   os.Environ(),
 				Files: []*os.File{devNull, devNull, devNull},
 				Sys:   &syscall.SysProcAttr{Setsid: true},

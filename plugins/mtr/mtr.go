@@ -18,12 +18,14 @@ import (
 // Emits one metric per hop as "{probeName}_{hopHost}" with average latency in ms.
 
 type MTRProbe struct {
-	name     string
-	target   string
-	interval time.Duration
-	count    int
-	ipv6     bool
-	mtrPath  string
+	name       string
+	target     string
+	interval   time.Duration
+	count      int
+	ipv6       bool
+	mtrPath    string
+	errorCount int
+	maxErrors  int
 }
 
 func init() {
@@ -65,15 +67,19 @@ func New(cfg plugin.ProbeConfig) (plugin.Probe, error) {
 		return nil, fmt.Errorf("mtr not found in PATH: %v", err)
 	}
 
-	// Default to 5 cycles
-	count := 5
+	count := cfg.Count
+	if count == 0 {
+		count = 5
+	}
 	return &MTRProbe{
-		name:     cfg.Name,
-		target:   cfg.Target,
-		interval: cfg.Interval,
-		count:    count,
-		ipv6:     ipv6,
-		mtrPath:  mtrExe,
+		name:       cfg.Name,
+		target:     cfg.Target,
+		interval:   cfg.Interval,
+		count:      count,
+		ipv6:       ipv6,
+		mtrPath:    mtrExe,
+		errorCount: 0,
+		maxErrors:  5,
 	}, nil
 }
 
@@ -94,7 +100,7 @@ func (p *MTRProbe) Run(ctx context.Context, out chan<- plugin.Metric) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			fmt.Fprintf(os.Stderr, "▶️  running MTR probe %q -> %s (ipv6=%t)\n", p.name, p.target, p.ipv6)
+			fmt.Fprintf(os.Stderr, "running MTR probe %q -> %s (ipv6=%t)\n", p.name, p.target, p.ipv6)
 
 			// Build arguments
 			args := []string{"-r", "-c", strconv.Itoa(p.count)}
@@ -109,11 +115,14 @@ func (p *MTRProbe) Run(ctx context.Context, out chan<- plugin.Metric) {
 			cmd := exec.CommandContext(ctx, p.mtrPath, args...)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "❌ mtr error for %q: %v\nOutput: %s\n", p.name, err, output)
-				out <- plugin.Metric{Probe: p.name, Time: time.Now().Unix(), Latency: -1}
+				p.errorCount++
+				fmt.Fprintf(os.Stderr, "mtr error for %q (%d/%d): %v\n", p.name, p.errorCount, p.maxErrors, err)
+				if p.errorCount >= p.maxErrors {
+					fmt.Fprintf(os.Stderr, "mtr probe %q: max errors reached, skipping metric emission\n", p.name)
+				}
 				continue
 			}
-			fmt.Fprintf(os.Stderr, "🗒 raw mtr output for %q:\n%s\n", p.name, output)
+			p.errorCount = 0
 
 			// Parse output
 			scanner := bufio.NewScanner(strings.NewReader(string(output)))
@@ -136,7 +145,6 @@ func (p *MTRProbe) Run(ctx context.Context, out chan<- plugin.Metric) {
 				avgStr := fields[5]
 				avg, err := strconv.ParseFloat(avgStr, 64)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "⚠️  parse error for %q line %q: %v\n", p.name, line, err)
 					continue
 				}
 				safeHop := strings.ReplaceAll(hop, "/", "_")
@@ -145,11 +153,10 @@ func (p *MTRProbe) Run(ctx context.Context, out chan<- plugin.Metric) {
 				emitted++
 			}
 			if err := scanner.Err(); err != nil {
-				fmt.Fprintf(os.Stderr, "⚠️  scan error for %q: %v\n", p.name, err)
+				fmt.Fprintf(os.Stderr, "scan error for %q: %v\n", p.name, err)
 			}
 			if emitted == 0 {
-				fmt.Fprintf(os.Stderr, "⚠️  no hops for %q, emitting placeholder\n", p.name)
-				out <- plugin.Metric{Probe: p.name, Time: time.Now().Unix(), Latency: -1}
+				fmt.Fprintf(os.Stderr, "no hops parsed for %q\n", p.name)
 			}
 		}
 	}

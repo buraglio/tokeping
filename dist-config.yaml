@@ -1,7 +1,6 @@
 pid_file: "/var/run/tokeping.pid"
+metric_buffer: 100
 
-probes:
-# ------ Example mtr probe
 probes:
   - name: mtr-quad-one
     type: mtr
@@ -79,12 +78,8 @@ probes:
     target: dns.qosbox.com
     interval: 30s
     protocol: doh
-    doh_url: "https://cloudflare-dns.com/dns-query"      
+    doh_url: "https://cloudflare-dns.com/dns-query"
 
-outputs:
-  - name: local-ws
-    type: ws
-    listen: ":8080"
 outputs:
   - name: influx
     type: influxdb
