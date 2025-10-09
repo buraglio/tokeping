@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -48,6 +47,11 @@ func New(cfg plugin.ProbeConfig) (plugin.Probe, error) {
 		proto = "udp"
 	}
 
+	timeout := cfg.Timeout
+	if timeout == 0 {
+		timeout = 5 * time.Second
+	}
+
 	dp := &DNSProbe{
 		name:     cfg.Name,
 		target:   cfg.Target,
@@ -57,30 +61,26 @@ func New(cfg plugin.ProbeConfig) (plugin.Probe, error) {
 		dohURL:   cfg.DoHURL,
 	}
 
-	// Default UDP resolver
 	dp.udpRes = net.DefaultResolver
 
-	// TCP resolver over the configured address
 	dp.tcpRes = &net.Resolver{
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			d := net.Dialer{Timeout: 2 * time.Second}
+			d := net.Dialer{Timeout: timeout}
 			return d.DialContext(ctx, "tcp", dp.resolver)
 		},
 	}
 
-	// DoT client with proper SNI
 	dp.dotClient = &dns.Client{
 		Net:     "tcp-tls",
-		Timeout: 5 * time.Second,
+		Timeout: timeout,
 		TLSConfig: &tls.Config{
 			ServerName:         extractHostname(cfg.Resolver),
 			InsecureSkipVerify: false,
 		},
 	}
 
-	// DoH HTTP client
-	dp.httpClient = &http.Client{Timeout: 5 * time.Second}
+	dp.httpClient = &http.Client{Timeout: timeout}
 
 	return dp, nil
 }
@@ -99,31 +99,24 @@ func (p *DNSProbe) Run(ctx context.Context, out chan<- plugin.Metric) {
 		case <-ticker.C:
 			start := time.Now()
 			var err error
+			var latencyMs float64
 
 			switch p.protocol {
 			case "udp":
 				_, err = p.udpRes.LookupHost(ctx, p.target)
+				latencyMs = time.Since(start).Seconds() * 1000
 
 			case "tcp":
 				_, err = p.tcpRes.LookupHost(ctx, p.target)
+				latencyMs = time.Since(start).Seconds() * 1000
 
 			case "dot":
 				m := new(dns.Msg)
 				m.SetQuestion(dns.Fqdn(p.target), dns.TypeA)
-				fmt.Fprintf(os.Stderr, "⏱ DoT query %s → %s\n", p.target, p.resolver)
 				_, rtt, err2 := p.dotClient.ExchangeContext(ctx, m, p.resolver)
-				if err2 != nil {
-					err = err2
-					fmt.Fprintf(os.Stderr, "❌ DoT error: %v\n", err)
-				} else {
-					// use the measured round-trip time
-					elapsed := rtt
-					out <- plugin.Metric{
-						Probe:   p.name,
-						Time:    time.Now().Unix(),
-						Latency: elapsed.Seconds() * 1000,
-					}
-					continue
+				err = err2
+				if err == nil {
+					latencyMs = rtt.Seconds() * 1000
 				}
 
 			case "doh":
@@ -137,31 +130,27 @@ func (p *DNSProbe) Run(ctx context.Context, out chan<- plugin.Metric) {
 				resp, err2 := p.httpClient.Do(req)
 				if err2 != nil {
 					err = err2
-					fmt.Fprintf(os.Stderr, "❌ DoH error: %v\n", err)
 				} else {
 					defer resp.Body.Close()
 					var result struct{ Answer []interface{} }
 					if err2 = json.NewDecoder(resp.Body).Decode(&result); err2 != nil {
 						err = err2
-						fmt.Fprintf(os.Stderr, "❌ DoH parse error: %v\n", err)
 					}
+					latencyMs = time.Since(start).Seconds() * 1000
 				}
 
 			default:
 				err = fmt.Errorf("unknown DNS protocol: %s", p.protocol)
 			}
 
-			// Fallback for udp, tcp, doh, or dot errors
-			elapsed := time.Since(start)
-			ms := elapsed.Seconds() * 1000
 			if err != nil {
-				ms = -1
+				continue
 			}
 
 			out <- plugin.Metric{
 				Probe:   p.name,
 				Time:    time.Now().Unix(),
-				Latency: ms,
+				Latency: latencyMs,
 			}
 		}
 	}

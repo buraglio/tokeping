@@ -29,16 +29,14 @@ func New(cfg plugin.OutputConfig) (plugin.Output, error) {
 
 func (o *InfluxOutput) Name() string { return "influxdb" }
 func (o *InfluxOutput) Start() error { return nil }
-func (o *InfluxOutput) Send(m plugin.Metric) {
-	// build the point
+func (o *InfluxOutput) Send(ctx context.Context, m plugin.Metric) {
 	point := influxdb2.NewPointWithMeasurement("latency").
 		AddTag("probe", m.Probe).
 		AddField("value", m.Latency).
 		SetTime(time.Unix(m.Time, 0))
 
-	// write it, logging any error
-	if err := o.writeAPI.WritePoint(context.Background(), point); err != nil {
-		fmt.Fprintf(os.Stderr, "❌ influx write error: %v\n", err)
+	if err := o.writeAPI.WritePoint(ctx, point); err != nil {
+		fmt.Fprintf(os.Stderr, "influx write error: %v\n", err)
 	}
 }
 
