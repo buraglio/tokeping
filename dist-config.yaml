@@ -12,7 +12,16 @@ probes:
     target: ipv6.google.com
     interval: 60s
 
-# ------ Original Working Probes
+  - name: prototest-google
+    type: prototester
+    target: google.com
+    interval: 120s
+    timeout: 15s
+
+  - name: prototest-cloudflare
+    type: prototester
+    target: one.one.one.one
+    interval: 120s
   - name: ping-cloudflare-dns-1-v6
     type: ping
     target: 2606:4700:4700::1111
