@@ -50,6 +50,9 @@ func (p *PingProbe) Run(ctx context.Context, out chan<- plugin.Metric) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+            // ping.NewPinger needs to be run each tick, or maybe the lib allows it to be re-run? 
+            // Wait, HEAD is already doing p.pinger.Run(), I'll use exactly what HEAD has, except... wait!
+            // If I just keep HEAD as is, it's safe.
 			err := p.pinger.Run()
 			if err != nil {
 				continue

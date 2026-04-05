@@ -2,7 +2,7 @@
 
 An amateurish re-imagining of both [smokeping](https://oss.oetiker.ch/smokeping/) and the successor [vaping](https://github.com/20c/vaping) in golang. The architecture is plugin based and modular, with the potential of being a compiled and theoretically faster, lower overhead implementation. 
 
-A simple grafana dashboard displaying both ping and DNS statistics running on the development site is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a108473f56ec492fb5b337b8f0416c6b), and one displaying MTR statistics is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a86956c210244d97ab30471aeff13343). Please allow for periodic development work and interruptions.
+ A simple grafana dashboard displaying both ping and DNS statistics running on the development site is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a108473f56ec492fb5b337b8f0416c6b), and one displaying MTR statistics is available [here](https://tokeping-dev.mpls.rsvp/public-dashboards/a86956c210244d97ab30471aeff13343). Please allow for periodic development work and interruptions.
 
 ![tokeping dashboard](tokeping-dev-example.png "tokeping-dashboard")
 
@@ -87,6 +87,12 @@ Start the daemon:
 
 Stop it with Ctrl+C or via your service manager.
 
+Reload the configuration gracefully without dropping PID by sending a `SIGHUP` signal:
+
+```
+kill -HUP $(pidof tokeping)
+```
+
 ### Linux Service file
 
 There is an included linux service (tokeping.service) file to make running this more automatic. Move it into `/etc/systemd/system/` and run the following: 
@@ -98,6 +104,7 @@ Check if it's working with all of the normal methods:
 
 `sudo systemctl status tokeping.service`
 `sudo systemctl restart tokeping.service`
+`sudo systemctl reload tokeping.service` # Reloads config.yaml gracefully
 
 etc...
 
@@ -108,7 +115,7 @@ Tokeping serves a built-in web UI over WebSocket and HTTP:
 Open your browser to http://localhost:8080/.
 
 View real-time latency charts powered by Chart.js.
-This is not really meant for full-time use, and stores no long-term data. It's more just for testing and saying "yeah, it works". 
+This interface natively groups responses per-probe using generated color-coded lines and retains the last 60 minutes of metrics in-browser. It is not meant for massive long-term data queries, but acts as quick local visualization to verify things are functioning correctly. 
 
 ### Using Grafana
 
@@ -182,7 +189,7 @@ In the query editor (Flux), paste:
 
 ```
 from(bucket: "metrics")
-  |> range(start: -1h)
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
   |> filter(fn: (r) => r._measurement == "latency" and r._field == "value")
   |> aggregateWindow(every: $__interval, fn: mean, createEmpty: false)
   |> yield(name: "mean")
@@ -265,7 +272,7 @@ Supported protocols: `udp`, `tcp`, `dot` (DNS over TLS), `doh` (DNS over HTTPS)
 
 #### MTR
 
-With MTR installed, trace each hop and graph the RTT.
+With MTR installed, trace each hop and graph the RTT. The plugin defaults to preferring IPv6 (if available), but will automatically fallback to IPv4 if the initial trace fails due to network unreachability.
 
 Configuration example:
 ```yaml

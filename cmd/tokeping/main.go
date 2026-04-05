@@ -65,34 +65,53 @@ var startCmd = &cobra.Command{
 			os.Exit(0)
 		}
 
-		// Load config
-		conf, err := config.Load(cfgFile)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
+		sysSignals := make(chan os.Signal, 1)
+		signal.Notify(sysSignals, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 
-		// Write PID file if configured
-		if conf.PIDFile != "" {
-			pid := []byte(fmt.Sprintf("%d", os.Getpid()))
-			if err := os.WriteFile(conf.PIDFile, pid, 0644); err != nil {
-				fmt.Fprintf(os.Stderr, "failed to write pid file: %v", err)
+		for {
+			// Load config
+			conf, err := config.Load(cfgFile)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
 			}
+	
+			// Write PID file if configured
+			if conf.PIDFile != "" {
+				pid := []byte(fmt.Sprintf("%d", os.Getpid()))
+				if err := os.WriteFile(conf.PIDFile, pid, 0644); err != nil {
+					fmt.Fprintf(os.Stderr, "failed to write pid file: %v\n", err)
+				}
+			}
+	
+			// Create daemon
+			d, err := daemon.New(conf)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+	
+			ctx, cancel := context.WithCancel(context.Background())
+			daemonDone := make(chan struct{})
+			go func() {
+				d.Run(ctx)
+				close(daemonDone)
+			}()
+			
+			sig := <-sysSignals
+			if sig == syscall.SIGHUP {
+				fmt.Println("SIGHUP received, reloading configuration...")
+				cancel()
+				<-daemonDone // wait for old daemon to stop
+				continue     // restart loop
+			}
+			
+			// SIGINT / SIGTERM
+			fmt.Printf("Shutting down due to signal %v\n", sig)
+			cancel()
+			<-daemonDone
+			return
 		}
-
-		// Create and run daemon
-		d, err := daemon.New(conf)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		defer cancel()
-
-		go d.Run(ctx)
-		<-ctx.Done()
-		d.Stop()
 	},
 }
 

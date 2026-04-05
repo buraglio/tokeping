@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"tokeping/pkg/plugin"
@@ -20,6 +21,9 @@ func init() {
 }
 
 func New(cfg plugin.OutputConfig) (plugin.Output, error) {
+	if err := os.MkdirAll(filepath.Dir(cfg.Path), 0755); err != nil {
+		return nil, err
+	}
 	f, err := os.OpenFile(cfg.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err

@@ -112,13 +112,21 @@ func (p *MTRProbe) Run(ctx context.Context, out chan<- plugin.Metric) {
 			args = append(args, p.target)
 
 			// Execute mtr
-			cmd := exec.CommandContext(ctx, p.mtrPath, args...)
+			evalCtx, cancel := context.WithTimeout(ctx, p.interval)
+			cmd := exec.CommandContext(evalCtx, p.mtrPath, args...)
 			output, err := cmd.CombinedOutput()
+			cancel()
 			if err != nil {
 				p.errorCount++
-				fmt.Fprintf(os.Stderr, "mtr error for %q (%d/%d): %v\n", p.name, p.errorCount, p.maxErrors, err)
+				fmt.Fprintf(os.Stderr, "❌ mtr error for %q (%d/%d): %v\nOutput: %s\n", p.name, p.errorCount, p.maxErrors, err, output)
+				if p.ipv6 {
+					fmt.Fprintf(os.Stderr, "⚠️ falling back to IPv4 for %q next tick\n", p.name)
+					p.ipv6 = false
+				}
 				if p.errorCount >= p.maxErrors {
 					fmt.Fprintf(os.Stderr, "mtr probe %q: max errors reached, skipping metric emission\n", p.name)
+				} else {
+					out <- plugin.Metric{Probe: p.name, Time: time.Now().Unix(), Latency: -1}
 				}
 				continue
 			}
